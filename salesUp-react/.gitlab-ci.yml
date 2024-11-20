@@ -1,0 +1,68 @@
+
+
+###################################################
+####################  HELM RD  ####################
+###################################################
+
+
+build-rd-salesup:
+  stage: build
+  script:
+    - echo $ANSIBLE_VAULT > $PWD/.ansible/.vault
+    - cp ${ENV_SALESUP_HELM_RD} $PWD/.env
+    - ansible-playbook /home/gitlab-runner/kube-deploy/.ansible/playbook.yml --vault-password-file=$PWD/.ansible/.vault -e "@.ansible/vars/rd-helm.yml" -e "registry_login=$registry_login" -e "registry_secret=$registry_secret" --tags "build_kube" -e "project_path=$CI_PROJECT_DIR" 
+    - rm $PWD/.ansible/.vault
+  only:
+    - develop
+  tags:
+    - dailyapps-dev-k8s-front
+
+
+deploy-helm-rd-salesup:
+  stage: deploy
+  needs: ["build-rd-salesup"]
+  script:
+    - export CHART_NAME_FOLDER=rd-dailyapps-front
+    - export VALUES_FILE=rd-salesup-react-values.yml
+    - export CHART_NAME=rd-salesup
+    - export CHART_VERSION=rd-latest
+    - export VERSION=rd-latest
+    - bash /home/gitlab-runner/helm-charts/$CHART_NAME_FOLDER/deploiement.sh
+  only:
+    - develop
+  tags:
+    - dailyapps-dev-k8s-front
+
+
+###################################################
+####################  HELM RC  ####################
+###################################################
+
+
+build-rc-salesup:
+  stage: build
+  script:
+    - echo $ANSIBLE_VAULT > $PWD/.ansible/.vault
+    - cp ${ENV_SALESUP_HELM_RC} $PWD/.env
+    - ansible-playbook /home/gitlab-runner/kube-deploy/.ansible/playbook.yml --vault-password-file=$PWD/.ansible/.vault -e "@.ansible/vars/rc-helm.yml" -e "registry_login=$registry_login" -e "registry_secret=$registry_secret" --tags "build_kube" -e "project_path=$CI_PROJECT_DIR" 
+    - rm $PWD/.ansible/.vault
+  only:
+    - /^release\/[\S\d]{1,}$/
+  tags:
+    - dailyapps-dev-k8s-front
+
+
+deploy-helm-rc-salesup:
+  stage: deploy
+  needs: ["build-rc-salesup"]
+  script:
+    - export CHART_NAME_FOLDER=rd-dailyapps-front
+    - export VALUES_FILE=rc-salesup-react-values.yml
+    - export CHART_NAME=rc-salesup
+    - export CHART_VERSION=rc-latest
+    - export VERSION=rc-latest
+    - bash /home/gitlab-runner/helm-charts/$CHART_NAME_FOLDER/deploiement.sh
+  only:
+    - /^release\/[\S\d]{1,}$/
+  tags:
+    - dailyapps-dev-k8s-front
